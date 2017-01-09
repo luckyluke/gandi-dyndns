@@ -9,6 +9,7 @@ import subprocess
 import time
 import urllib2
 import xmlrpclib
+import argparse
 
 import logging as log
 LOG_LEVEL = log.getLevelName(os.getenv('LOG_LEVEL'))
@@ -200,7 +201,7 @@ def test_providers():
     except Exception as e:
       log.warning('Error getting external IP address from %s: %s', provider, e)
 
-def update_ip():
+def update_ip(args):
   '''
   Check our external IP address and update Gandi's A-record to point to it if
   it has changed.
@@ -214,7 +215,7 @@ def update_ip():
   log.debug('Config file loaded.')
 
   # create a connection to the Gandi production API
-  gandi = GandiServerProxy(config['api_key'])
+  gandi = GandiServerProxy(config['api_key'], test=args.test_rpc)
 
   # see if the record's IP differs from ours
   if 'command' in config:
@@ -342,13 +343,22 @@ def update_ip():
   if exit_code != 0:
     sys.exit(exit_code)
 
-def main(args):
-  # test all providers if specified, otherwise update the IP
-  if args[-1] == 'test':
+def main():
+  commands= ['test', 'getip', 'updateip']
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--test-rpc', action='store_true',
+                      help='Use Gandi RPC test service (OTE)')
+  parser.add_argument('command', default='updateip', nargs='?', choices=commands,
+                      help='Command to be executed.')
+  args = parser.parse_args()
+
+  if args.command == 'test':
     test_providers()
-  else:
-    update_ip()
+  elif args.command == 'getip':
+    print(get_external_ip())
+  elif args.command == 'updateip':
+    update_ip(args)
 
 if __name__ == '__main__':
   import sys
-  main(sys.argv)
+  main()
