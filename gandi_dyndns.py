@@ -299,12 +299,15 @@ def update_ip(args):
       record_ip = dynamic_record['value'].strip()
       log.debug('  Current dynamic record IP is: %s', record_ip)
 
-      # compare the IPs, and exit if they match
-      if external_ip == record_ip:
-        log.debug('  External IP matches current dynamic record IP, no update necessary.')
-        continue # with next record
+      if args.force:
+        log.info("  Forcing IP update.")
+      else:
+        # compare the IPs, and exit if they match
+        if external_ip == record_ip:
+          log.debug('  External IP matches current dynamic record IP, no update necessary.')
+          continue # with next record
 
-      log.debug('  External IP differs from current dynamic record IP!')
+        log.debug('  External IP differs from current dynamic record IP!')
       updates.append(rec)
 
     if not updates:
@@ -382,6 +385,8 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--test-rpc', action='store_true',
                       help='Use Gandi RPC test service (OTE)')
+  parser.add_argument('-f', '--force', action='store_true',
+                      help='Force the update, same as if current IP and domain IP differ.')
   parser.add_argument('command', default='updateip', nargs='?', choices=commands,
                       help='Command to be executed.')
   args = parser.parse_args()
