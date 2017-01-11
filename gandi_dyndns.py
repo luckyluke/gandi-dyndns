@@ -10,6 +10,7 @@ import time
 import urllib2
 import xmlrpclib
 import argparse
+import smtplib
 
 import logging as log
 LOG_LEVEL = log.getLevelName(os.getenv('LOG_LEVEL'))
@@ -21,6 +22,20 @@ log.basicConfig(format='%(asctime)-15s [%(levelname)s] %(message)s', level=LOG_L
 # matches all IPv4 addresses, including invalid ones. we look for
 # multiple-provider agreement before returning an IP.
 IP_ADDRESS_REGEX = re.compile('\d{1,3}(?:\.\d{1,3}){3}')
+
+# Template for notification mail sent when the IP is updated
+email_tmpl = """\
+On  %(timedate)s  the domain(s):
+
+  %(domain)s
+
+were updated to the following public IP:
+
+  %(ip)s
+
+Yours Truly,
+gandi_dyndns.py
+"""
 
 class GandiServerProxy(object):
   '''
@@ -201,6 +216,20 @@ def test_providers():
     except Exception as e:
       log.warning('Error getting external IP address from %s: %s', provider, e)
 
+def send_email(config, domains, ext_ip):
+    # Send notification mail about updated domains
+  email_vals = {
+    'timedate': time.asctime(),
+    'domain':'\n  '.join(domains),
+    'ip':ext_ip,
+  }
+  s = smtplib.SMTP(config['email_host'])
+  try:
+    s.sendmail(config['email_from'], config['email_to'], email_tmpl %email_vals)
+  except Exception as e:
+    log.warn("Error in sending email: %s" %e)
+  s.quit()
+
 def update_ip(args):
   '''
   Check our external IP address and update Gandi's A-record to point to it if
@@ -233,6 +262,7 @@ def update_ip(args):
     sys.exit(2)
 
   exit_code = 0
+  updated_domains = []
 
   for domain in config['domains']:
     # get the current zone id for the configured domain
@@ -327,6 +357,7 @@ def update_ip(args):
         continue # with next record
 
       log.info('Dynamic record updated.')
+      updated_domains.append(rec+'.'+domain)
 
     if errors:
       log.info('Errors during processing, zone NOT UPDATED.')
@@ -339,6 +370,9 @@ def update_ip(args):
 
     log.info('Set zone %d as the active zone version.', new_version_id)
     log.info('Dynamic record successfully updated to %s!', external_ip)
+
+  if config.get('email_enable', False):
+    send_email(config, updated_domains, external_ip)
 
   if exit_code != 0:
     sys.exit(exit_code)
