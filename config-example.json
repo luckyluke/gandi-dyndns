@@ -1,5 +1,9 @@
 {
   "api_key": "twentyfourcharacterslong",
+  "email_enable": true,
+  "email_from": "from@example.com",
+  "email_to": "to@example.com",
+  "email_host": "localhost",
   "domains": {
     "example.com": [ "@", "mail", "xmpp" ]
   }
