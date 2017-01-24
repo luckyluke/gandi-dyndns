@@ -381,14 +381,15 @@ def update_ip(args):
     sys.exit(exit_code)
 
 def main():
-  commands= ['test', 'getip', 'updateip']
+  commands = ['test', 'getip', 'updateip']
+  defcommand = 'updateip'
   parser = argparse.ArgumentParser()
   parser.add_argument('--test-rpc', action='store_true',
                       help='Use Gandi RPC test service (OTE)')
   parser.add_argument('-f', '--force', action='store_true',
                       help='Force the update, same as if current IP and domain IP differ.')
-  parser.add_argument('command', default='updateip', nargs='?', choices=commands,
-                      help='Command to be executed.')
+  parser.add_argument('command', default=defcommand, nargs='?', choices=commands,
+                      help='Command to be executed. Default: %s' %defcommand)
   args = parser.parse_args()
 
   if args.command == 'test':
